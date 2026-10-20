@@ -26,7 +26,7 @@ function db(uid, email = people[uid]?.email, verified = true) {
 
 before(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'demo-poker-pix',
+    projectId: 'demo-estimativas',
     database: {
       rules: buildRules(
         readFileSync(new URL('../database.rules.template.json', import.meta.url), 'utf8'),

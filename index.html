@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Poker Pix</title>
+  <title>Estimativas</title>
   <meta name="theme-color" content="#115f59">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='2' width='22' height='28' rx='4' fill='%23115f59'/><path d='M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z' fill='white'/></svg>">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <script>
     try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
@@ -15,7 +15,7 @@
   <header class="topbar">
     <div class="brand">
       <svg class="logo" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#115f59"/><path fill="#fff" d="M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z"/></svg>
-      <span>Poker <strong>Pix</strong></span>
+      <span>Estimativas</span>
     </div>
     <div class="topbar-right">
       <div id="who" class="who" hidden>
@@ -46,7 +46,8 @@
 
     <section id="screen-login" class="card narrow center" hidden>
       <svg class="hero-logo" width="72" height="72" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#115f59"/><path fill="#fff" d="M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z"/></svg>
-      <h2>Estimativa em equipe</h2>
+      <h2>Estimativas da equipe</h2>
+      <p class="muted">DEV estima o desenvolvimento, QA estima os testes.</p>
       <p class="muted">Entre com sua conta Google para participar.</p>
       <button id="login-google" class="btn google">
         <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.8c4.3-4 6.9-9.9 6.9-17.2z"/><path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.8c-2.1 1.4-4.8 2.2-8.5 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.2C6.6 42.6 14.6 48 24 48z"/></svg>
@@ -115,6 +116,6 @@
     </section>
   </main>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

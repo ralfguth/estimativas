@@ -148,8 +148,7 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 10px; font-size: 1.5em; font-weight: 600; }
-.brand strong { color: var(--brand); font-weight: 800; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 1.5em; font-weight: 800; color: var(--brand); }
 .logo { width: 34px; height: 34px; }
 .logo rect, .hero-logo rect { fill: var(--brand); }
 .logo path, .hero-logo path { fill: var(--surface); }
@@ -175,6 +174,7 @@ main { padding: 28px; max-width: 1440px; margin: 0 auto; }
 }
 .narrow { max-width: 520px; margin: 48px auto; }
 .center { text-align: center; }
+.center p { text-wrap: balance; margin: 6px 0; }
 .card h2 { margin: 0 0 8px; font-size: 1.6em; }
 .hero-logo { width: 72px; height: 72px; margin-bottom: 12px; }
 #screen-login .btn.google { margin-top: 16px; }

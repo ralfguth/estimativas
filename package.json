@@ -1,7 +1,7 @@
 {
-  "name": "poker-pix",
+  "name": "estimativas",
   "version": "1.0.0",
-  "description": "Estimativa em equipe (planning poker) para DEV e QA",
+  "description": "Estimativas de desenvolvimento e de testes, feitas em equipe",
   "type": "module",
   "private": true,
   "engines": {
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test test/room.test.js test/build-rules.test.js",
-    "test:rules": "firebase emulators:exec --only database --config firebase.test.json --project demo-poker-pix \"node --test test/rules.test.js\"",
+    "test:rules": "firebase emulators:exec --only database --config firebase.test.json --project demo-estimativas \"node --test test/rules.test.js\"",
     "test:all": "npm test && npm run test:rules",
     "build:rules": "node scripts/build-rules.mjs",
     "deploy:rules": "npm run build:rules && firebase deploy --only database",

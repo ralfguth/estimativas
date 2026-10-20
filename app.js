@@ -6,10 +6,10 @@ import {
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=4';
+import { firebaseConfig } from './firebase-config.js?v=5';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=4';
+} from './src/room.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const screens = ['setup', 'loading', 'login', 'profile', 'board'];
@@ -48,7 +48,7 @@ if (firebaseConfig.apiKey === 'COLE_AQUI' && !useEmulator) {
 }
 
 const app = initializeApp(useEmulator
-  ? { apiKey: 'demo', projectId: 'demo-poker-pix', databaseURL: 'http://localhost:9000?ns=demo-poker-pix-default-rtdb' }
+  ? { apiKey: 'demo', projectId: 'demo-estimativas', databaseURL: 'http://localhost:9000?ns=demo-estimativas-default-rtdb' }
   : firebaseConfig);
 const auth = getAuth(app);
 auth.languageCode = 'pt';

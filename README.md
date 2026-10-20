@@ -1,23 +1,24 @@
-# Poker Pix
+# Estimativas
 
-Estimativa de tarefas em equipe, no estilo *planning poker*, com painéis
-separados para desenvolvimento (DEV) e qualidade (QA).
+Estimativa de tarefas em equipe, no estilo *planning poker*. Cada tarefa recebe
+duas estimativas independentes: os DEVs estimam o tempo de desenvolvimento e os
+QAs estimam o tempo de testes.
 
-**Acesse:** <https://ralfguth.github.io/pokerpix/>
+**Acesse:** <https://ralfguth.github.io/estimativas/>
 
 ![Votos revelados, com a média de cada painel](docs/votos-revelados.png)
 
 ## O problema
 
-Em reuniões de refinamento, quem desenvolve e quem testa costuma estimar a mesma
-tarefa de jeitos diferentes. Juntar tudo numa média só esconde essa diferença,
-e é justamente ela que puxa a conversa boa ("por que você acha que o teste é
-maior que o código?"). Outro problema conhecido é a ancoragem: quem vota
-depois de ver o voto do colega tende a copiar.
+Desenvolver e testar são trabalhos diferentes, e cada um tem o seu tempo. Uma
+estimativa única para a tarefa mistura as duas coisas, e quem planeja a sprint
+perde a noção de quanto vai custar cada parte. Além disso, quem vota depois de
+ver o voto do colega tende a copiar (o efeito de ancoragem).
 
-O Poker Pix resolve as duas coisas:
+O Estimativas resolve as duas coisas:
 
-- **Dois painéis lado a lado**, cada um com a sua média.
+- **Dois painéis lado a lado.** DEV estima o desenvolvimento e QA estima os
+  testes, cada painel com a sua própria média.
 - **Voto secreto de verdade** até alguém clicar em Revelar. Não é só a tela que
   esconde, o servidor recusa entregar o voto alheio.
 
@@ -32,7 +33,7 @@ O Poker Pix resolve as duas coisas:
 5. **Revelar** vira as cartas e mostra a média de DEV e a de QA. O 1000 fica
    fora da média e aparece contado à parte.
 6. O voto pode mudar a qualquer momento, inclusive depois de revelado, porque é
-   aí que a discussão acontece. A média acompanha na hora.
+   quando o time conversa sobre os números. A média acompanha na hora.
 7. **Reiniciar** zera os votos e esconde tudo para a próxima tarefa.
 
 Quem passa mais de 12 horas sem votar sai da sala sozinho. Não há histórico de
@@ -122,7 +123,7 @@ Sem projeto Firebase, só com os emuladores:
 npm install
 echo "exemplo.com.br" > allowed.txt
 npm run build:rules
-npx firebase emulators:start --only database,auth --project demo-poker-pix
+npx firebase emulators:start --only database,auth --project demo-estimativas
 npm run serve
 ```
 
