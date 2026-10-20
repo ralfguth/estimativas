@@ -1,0 +1,10 @@
+node_modules/
+*-debug.log
+.firebaserc
+.env*
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+service-account*.json
+.firebase/
+allowed.txt
+database.rules.json

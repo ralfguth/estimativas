@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "room": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__)",
+      "revealed": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__)",
+        ".validate": "newData.isBoolean()"
+      }
+    },
+
+    "participants": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__)",
+      "$uid": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && (auth.uid == $uid || (!newData.exists() && data.child('joinedAt').val() < now - 43200000 && (!data.child('lastVoteAt').exists() || data.child('lastVoteAt').val() < now - 43200000)))",
+        ".validate": "newData.hasChildren(['name', 'email', 'role', 'joinedAt'])",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
+        "email": { ".validate": "newData.val() == auth.token.email" },
+        "role": { ".validate": "newData.val() == 'DEV' || newData.val() == 'QA' || newData.val() == 'ESPECTADOR'" },
+        "joinedAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+        "lastVoteAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "voted": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__)",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && !newData.exists()",
+      "$uid": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && auth.uid == $uid",
+        ".validate": "newData.val() == true && (root.child('participants/' + $uid + '/role').val() == 'DEV' || root.child('participants/' + $uid + '/role').val() == 'QA')"
+      }
+    },
+
+    "votes": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && root.child('room/revealed').val() == true",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && !newData.exists()",
+      "$uid": {
+        ".read": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && auth.uid == $uid",
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.email.matches(__EMAIL_REGEX__) && auth.uid == $uid",
+        ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == 0.5 || newData.val() == 1 || newData.val() == 1.5 || newData.val() == 2 || newData.val() == 3 || newData.val() == 4 || newData.val() == 5 || newData.val() == 1000) && (root.child('participants/' + $uid + '/role').val() == 'DEV' || root.child('participants/' + $uid + '/role').val() == 'QA')"
+      }
+    }
+  }
+}
