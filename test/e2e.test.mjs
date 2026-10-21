@@ -192,3 +192,26 @@ test('votação completa: ocultar, revelar, mudar voto, reiniciar', async () => 
 
   for (const p of [ana, bia, caio, duda]) await p.context().close();
 });
+
+// Proteção para a troca de papel, antes de juntar as gravações dela numa só.
+test('trocar para espectador tira a pessoa do painel e apaga o voto', async () => {
+  const eva = await enter('eva@exemplo.com.br', 'Eva', 'DEV');
+  const fabio = await enter('fabio@exemplo.com.br', 'Fabio', 'QA');
+
+  await card(eva, '2').click();
+  await fabio.waitForFunction(() => [...document.querySelectorAll('#list-DEV li')]
+    .some((li) => li.innerText.includes('Eva') && li.classList.contains('voted')));
+
+  await eva.selectOption('#role-select', 'ESPECTADOR');
+  await fabio.waitForFunction(() => document.querySelector('#spectator-list').innerText.includes('Eva'));
+  assert.doesNotMatch(await text(fabio, '#list-DEV'), /Eva/);
+  await eva.waitForSelector('#my-cards', { state: 'hidden' });
+
+  await eva.selectOption('#role-select', 'DEV');
+  await eva.waitForSelector('#my-cards:not([hidden])');
+  assert.equal(await eva.locator('#cards button.selected').count(), 0, 'voto antigo não volta');
+  await fabio.waitForFunction(() => [...document.querySelectorAll('#list-DEV li')]
+    .some((li) => li.innerText.includes('Eva') && !li.classList.contains('voted')));
+
+  for (const p of [eva, fabio]) await p.context().close();
+});

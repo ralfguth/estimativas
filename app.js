@@ -7,10 +7,10 @@ import {
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=7';
+import { firebaseConfig } from './firebase-config.js?v=8';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=7';
+} from './src/room.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 const screens = ['setup', 'loading', 'login', 'confirm', 'profile', 'board'];
@@ -34,6 +34,36 @@ function busy(button, on, label) {
     button.textContent = label;
   } else if (button.dataset.label) {
     button.textContent = button.dataset.label;
+  }
+}
+
+// Bloqueia a tela enquanto o servidor confirma uma alteração. Só aparece se a
+// resposta demorar, para não piscar quando o Firebase está rápido. Sem conexão o
+// Firebase guarda a alteração e a confirmação pode não chegar, então a tela
+// destrava sozinha depois de um tempo.
+let pendingOps = 0;
+async function withOverlay(label, action) {
+  pendingOps += 1;
+  const showTimer = setTimeout(() => {
+    $('overlay-text').textContent = label;
+    $('overlay').hidden = false;
+    document.querySelector('main').inert = true;
+  }, 250);
+  const giveUp = setTimeout(() => {
+    $('overlay').hidden = true;
+    document.querySelector('main').inert = false;
+    showError('O servidor está demorando para responder. A alteração será enviada assim que a conexão voltar.');
+  }, 15000);
+  try {
+    return await action();
+  } finally {
+    clearTimeout(showTimer);
+    clearTimeout(giveUp);
+    pendingOps -= 1;
+    if (pendingOps === 0) {
+      $('overlay').hidden = true;
+      document.querySelector('main').inert = false;
+    }
   }
 }
 
@@ -233,23 +263,29 @@ async function joinRoom(name, role) {
   else await update(ref(db, `participants/${me.uid}`), changes);
 }
 
-$('role-select').addEventListener('change', async (e) => {
+$('role-select').addEventListener('change', (e) => withOverlay('Trocando de papel…', async () => {
   const role = e.target.value;
+  // Uma gravação só: quem vira espectador perde o voto junto com a troca.
+  const changes = { [`participants/${me.uid}/role`]: role };
+  if (!VOTING_ROLES.includes(role)) {
+    changes[`votes/${me.uid}`] = null;
+    changes[`voted/${me.uid}`] = null;
+  }
   try {
-    if (!VOTING_ROLES.includes(role)) {
-      await remove(ref(db, `votes/${me.uid}`));
-      await remove(ref(db, `voted/${me.uid}`));
-    }
-    await update(ref(db, `participants/${me.uid}`), { role });
+    await update(ref(db), changes);
     store.set('role', role);
   } catch (err) {
     showError(`Não foi possível trocar o papel (${err.code ?? err.message}).`);
   }
-});
+}));
 
 // ---------- Votação ----------
 
-async function vote(value) {
+function vote(value) {
+  return withOverlay('Registrando voto…', () => saveVote(value));
+}
+
+async function saveVote(value) {
   showError('');
   try {
     if (data.myVote === value) {
@@ -266,11 +302,11 @@ async function vote(value) {
   }
 }
 
-$('reveal').addEventListener('click', () => set(ref(db, 'room/revealed'), true)
-  .catch((err) => showError(`Não foi possível revelar (${err.code})`)));
+$('reveal').addEventListener('click', () => withOverlay('Revelando…', () => set(ref(db, 'room/revealed'), true)
+  .catch((err) => showError(`Não foi possível revelar (${err.code})`))));
 
-$('reset').addEventListener('click', () => update(ref(db), { votes: null, voted: null, 'room/revealed': false })
-  .catch((err) => showError(`Não foi possível reiniciar (${err.code})`)));
+$('reset').addEventListener('click', () => withOverlay('Reiniciando…', () => update(ref(db), { votes: null, voted: null, 'room/revealed': false })
+  .catch((err) => showError(`Não foi possível reiniciar (${err.code})`))));
 
 // Limpa da sala quem passou de 12h sem votar.
 async function sweep() {

@@ -140,6 +140,18 @@ button, input, select { font: inherit; color: inherit; }
   animation: spin 0.7s linear infinite;
 }
 .loading { display: inline-flex; align-items: center; gap: 10px; }
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  background: rgb(0 0 0 / 0.25); cursor: progress;
+}
+.overlay-box {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 16px 24px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-md);
+  font-weight: 700;
+}
+.overlay-box .spinner { color: var(--brand); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .btn.huge { font-size: 1.35em; padding: 14px 36px; min-width: 200px; border-radius: 14px; }
 .btn.google {
