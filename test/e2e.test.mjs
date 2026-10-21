@@ -221,3 +221,36 @@ test('trocar para espectador tira a pessoa do painel e apaga o voto', async () =
 
   for (const p of [eva, fabio]) await p.context().close();
 });
+
+// Com o servidor sem responder, a tela não pode mudar antes da confirmação.
+// Estado Red: o Firebase aplica a alteração na tela antes de o servidor confirmar.
+async function setOnline(page, online) {
+  await page.evaluate(async (on) => {
+    const m = await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js');
+    if (on) m.goOnline(m.getDatabase()); else m.goOffline(m.getDatabase());
+  }, online);
+}
+
+test('troca de papel e voto só aparecem depois que o servidor confirma', async () => {
+  const gil = await enter('gil@exemplo.com.br', 'Gil', 'DEV');
+
+  await setOnline(gil, false);
+  await card(gil, '3').click();
+  await gil.waitForSelector('#overlay:not([hidden])');
+  assert.equal(await gil.locator('#cards button.selected').count(), 0, 'carta só marca depois de confirmar');
+  await setOnline(gil, true);
+  await gil.waitForSelector('#overlay', { state: 'hidden' });
+  await gil.waitForSelector('#cards button.selected');
+
+  await setOnline(gil, false);
+  await gil.selectOption('#role-select', 'ESPECTADOR');
+  await gil.waitForSelector('#overlay:not([hidden])');
+  assert.match(await text(gil, '#list-DEV'), /Gil/, 'continua no painel DEV enquanto espera');
+  assert.equal(await gil.locator('#my-cards').isVisible(), true);
+  await setOnline(gil, true);
+  await gil.waitForSelector('#overlay', { state: 'hidden' });
+  await gil.waitForFunction(() => document.querySelector('#spectator-list').innerText.includes('Gil'));
+  assert.doesNotMatch(await text(gil, '#list-DEV'), /Gil/);
+
+  await gil.context().close();
+});

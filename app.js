@@ -8,10 +8,10 @@ import {
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=9';
+import { firebaseConfig } from './firebase-config.js?v=11';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=9';
+} from './src/room.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 const screens = ['setup', 'loading', 'login', 'profile', 'board'];
@@ -44,32 +44,36 @@ function busy(button, on, label) {
   }
 }
 
-// Bloqueia a tela enquanto o servidor confirma uma alteração. Só aparece se a
-// resposta demorar, para não piscar quando o Firebase está rápido. Sem conexão o
-// Firebase guarda a alteração e a confirmação pode não chegar, então a tela
-// destrava sozinha depois de um tempo.
-let pendingOps = 0;
+// Bloqueia a tela enquanto o servidor confirma uma alteração. O Firebase aplica
+// a mudança na tela antes de o servidor confirmar, então a tela fica congelada
+// como estava até a confirmação chegar: ela só mostra o que o servidor aceitou.
+// Sem resposta, a tela continua bloqueada e oferece recarregar, o que descarta a
+// alteração pendente e mostra o estado real do servidor.
+let frozen = 0;
+let renderPending = false;
+
 async function withOverlay(label, action) {
-  pendingOps += 1;
-  const showTimer = setTimeout(() => {
-    $('overlay-text').textContent = label;
-    $('overlay').hidden = false;
-    document.querySelector('main').inert = true;
-  }, 250);
-  const giveUp = setTimeout(() => {
-    $('overlay').hidden = true;
-    document.querySelector('main').inert = false;
-    showError('O servidor está demorando para responder. A alteração será enviada assim que a conexão voltar.');
+  frozen += 1;
+  $('overlay-text').textContent = label;
+  $('overlay-reload').hidden = true;
+  $('overlay').hidden = false;
+  document.querySelector('main').inert = true;
+  const slow = setTimeout(() => {
+    $('overlay-text').textContent = 'O servidor não respondeu. Aguardando a conexão…';
+    $('overlay-reload').hidden = false;
   }, 15000);
   try {
     return await action();
   } finally {
-    clearTimeout(showTimer);
-    clearTimeout(giveUp);
-    pendingOps -= 1;
-    if (pendingOps === 0) {
+    clearTimeout(slow);
+    frozen -= 1;
+    if (frozen === 0) {
       $('overlay').hidden = true;
       document.querySelector('main').inert = false;
+      if (renderPending) {
+        renderPending = false;
+        render();
+      }
     }
   }
 }
@@ -229,6 +233,8 @@ const serverNow = () => Date.now() + serverOffset;
 // }
 //
 
+$('overlay-reload').addEventListener('click', () => location.reload());
+
 $('logout').addEventListener('click', async () => {
   await signOut(auth);
 });
@@ -358,7 +364,9 @@ async function joinRoom(name, role) {
 }
 
 $('role-select').addEventListener('change', (e) => withOverlay('Trocando de papel…', async () => {
-  const role = e.target.value;
+  const select = e.target;
+  const role = select.value;
+  select.disabled = true;
   // Uma gravação só: quem vira espectador perde o voto junto com a troca.
   const changes = { [`participants/${me.uid}/role`]: role };
   if (!VOTING_ROLES.includes(role)) {
@@ -370,6 +378,8 @@ $('role-select').addEventListener('change', (e) => withOverlay('Trocando de pape
     store.set('role', role);
   } catch (err) {
     showError(`Não foi possível trocar o papel (${err.code ?? err.message}).`);
+  } finally {
+    select.disabled = false;
   }
 }));
 
@@ -528,6 +538,10 @@ let wasRevealed = false;
 
 function render() {
   if (!me) return;
+  if (frozen > 0) {
+    renderPending = true;
+    return;
+  }
   const view = buildView({
     participants: data.participants,
     voted: data.voted,
