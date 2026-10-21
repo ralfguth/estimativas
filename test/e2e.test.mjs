@@ -254,3 +254,32 @@ test('troca de papel e voto só aparecem depois que o servidor confirma', async 
 
   await gil.context().close();
 });
+
+// Estado Red: o nome no topo ainda não é clicável.
+test('clicar no próprio nome permite trocar, e todos veem o nome novo', async () => {
+  const helena = await enter('helena@exemplo.com.br', 'Helena', 'QA');
+  const ivo = await enter('ivo@exemplo.com.br', 'Ivo', 'DEV');
+
+  // Esc cancela sem salvar.
+  await helena.click('#who-name');
+  await helena.fill('#name-input', 'Outro nome');
+  await helena.press('#name-input', 'Escape');
+  assert.equal(await helena.locator('#name-form').isHidden(), true);
+  assert.equal(await text(helena, '#who-name'), 'Helena');
+
+  // Enter salva, e o nome muda para todos.
+  await helena.click('#who-name');
+  assert.equal(await helena.inputValue('#name-input'), 'Helena');
+  await helena.fill('#name-input', 'Helena Souza');
+  await helena.press('#name-input', 'Enter');
+  await helena.waitForSelector('#overlay', { state: 'hidden' });
+  await helena.waitForFunction(() => document.querySelector('#who-name').innerText === 'Helena Souza');
+  await ivo.waitForFunction(() => document.querySelector('#list-QA').innerText.includes('Helena Souza'));
+
+  // O nome novo sobrevive a recarregar a página.
+  await helena.reload();
+  await helena.waitForSelector('#screen-board:not([hidden])');
+  await helena.waitForFunction(() => document.querySelector('#who-name').innerText === 'Helena Souza');
+
+  for (const p of [helena, ivo]) await p.context().close();
+});

@@ -6,7 +6,7 @@
   <title>Estimativas</title>
   <meta name="theme-color" content="#115f59">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='2' width='22' height='28' rx='4' fill='%23115f59'/><path d='M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z' fill='white'/></svg>">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=14">
   <script>
     try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
@@ -20,7 +20,11 @@
     <div class="topbar-right">
       <div id="who" class="who" hidden>
         <span id="who-avatar" class="avatar" aria-hidden="true"></span>
-        <span id="who-name" class="who-name"></span>
+        <button id="who-name" class="who-name" type="button" title="Clique para mudar seu nome"><span id="who-name-text"></span></button>
+        <form id="name-form" class="name-form" hidden>
+          <input id="name-input" maxlength="40" required aria-label="Seu nome" autocomplete="name">
+          <button type="submit" class="btn primary">Salvar</button>
+        </form>
         <select id="role-select" aria-label="Meu papel">
           <option value="DEV">DEV</option>
           <option value="QA">QA</option>
@@ -166,6 +170,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=11"></script>
+  <script type="module" src="app.js?v=14"></script>
 </body>
 </html>

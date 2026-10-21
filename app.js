@@ -8,10 +8,10 @@ import {
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=11';
+import { firebaseConfig } from './firebase-config.js?v=14';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=11';
+} from './src/room.js?v=14';
 
 const $ = (id) => document.getElementById(id);
 const screens = ['setup', 'loading', 'login', 'profile', 'board'];
@@ -383,6 +383,46 @@ $('role-select').addEventListener('change', (e) => withOverlay('Trocando de pape
   }
 }));
 
+// ---------- Nome de exibição ----------
+// A pessoa clica no próprio nome no topo para trocar. Enter salva, Esc cancela.
+
+function openNameEdit() {
+  $('name-input').value = data.participants[me.uid]?.name ?? '';
+  $('who-name').hidden = true;
+  $('name-form').hidden = false;
+  $('who').classList.add('editing');
+  $('name-input').focus();
+  $('name-input').select();
+}
+
+function closeNameEdit() {
+  $('name-form').hidden = true;
+  $('who-name').hidden = false;
+  $('who').classList.remove('editing');
+}
+
+$('who-name').addEventListener('click', openNameEdit);
+
+$('name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeNameEdit();
+});
+
+$('name-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = $('name-input').value.trim().slice(0, 40);
+  const current = data.participants[me.uid]?.name;
+  closeNameEdit();
+  if (!name || name === current) return;
+  withOverlay('Salvando nome…', async () => {
+    try {
+      await update(ref(db, `participants/${me.uid}`), { name });
+      store.set('name', name);
+    } catch (err) {
+      showError(`Não foi possível trocar o nome (${err.code ?? err.message}).`);
+    }
+  });
+});
+
 // ---------- Votação ----------
 
 function vote(value) {
@@ -560,7 +600,7 @@ function render() {
   show('board');
   $('who').hidden = false;
   $('who-avatar').textContent = initials(view.me.name);
-  $('who-name').textContent = view.me.name;
+  $('who-name-text').textContent = view.me.name;
   $('role-select').value = view.me.role;
 
   $('status').textContent = view.revealed ? 'Votos revelados' : 'Votos ocultos';
@@ -624,6 +664,7 @@ async function startSession(user) {
 
 onAuthStateChanged(auth, async (user) => {
   unsubscribeAll();
+  closeNameEdit();
   me = null;
   profileDone = false;
   $('who').hidden = true;

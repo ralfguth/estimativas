@@ -38,6 +38,8 @@ O Estimativas resolve as duas coisas:
    quando o time conversa sobre os números. A média acompanha assim que o
    servidor confirma.
 7. **Reiniciar** zera os votos e esconde tudo para a próxima tarefa.
+8. Para trocar o nome de exibição, basta clicar no próprio nome no topo. O nome
+   novo aparece para todos assim que o servidor confirma.
 
 Quem passa mais de 12 horas sem votar sai da sala sozinho. Não há histórico de
 votações: a sala guarda só o mínimo para funcionar.
@@ -71,7 +73,7 @@ Hospedagem: GitHub Pages
   quem pode entrar.
 - **A tela só mostra o que o servidor confirmou.** O Firebase costuma aplicar
   uma alteração na tela antes de o servidor aceitar, para parecer rápido. Aqui,
-  cada ação (votar, trocar de papel, revelar, reiniciar) bloqueia a tela com um
+  cada ação (votar, trocar de papel ou de nome, revelar, reiniciar) bloqueia a tela com um
   aviso de espera e só atualiza depois da confirmação. Sem resposta, a tela
   continua bloqueada e oferece recarregar, sem nunca mostrar algo que o servidor
   não aceitou.
@@ -118,8 +120,8 @@ Os testes de ponta a ponta usam o Firefox do Playwright. Na primeira vez, rode
   simulados, de dentro e de fora da lista.
 - **Ponta a ponta:** o navegador roda contra os emuladores, cobrindo o login
   (criar conta, entrar, senha errada, conta repetida, esqueci minha senha e
-  e-mail fora da lista), a troca de papel e uma votação completa com quatro
-  pessoas ao mesmo tempo.
+  e-mail fora da lista), a troca de papel, a troca de nome e uma votação
+  completa com quatro pessoas ao mesmo tempo.
 - **Servidor lento:** com a conexão da página desligada, o teste confere que
   nem o voto nem a troca de papel aparecem na tela antes de o servidor
   confirmar, e que tudo atualiza quando a conexão volta.

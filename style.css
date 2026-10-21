@@ -175,7 +175,19 @@ button, input, select { font: inherit; color: inherit; }
 .logo rect, .hero-logo rect { fill: var(--brand); }
 .logo path, .hero-logo path { fill: var(--surface); }
 .topbar-right, .who { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.who-name { font-weight: 600; }
+.who-name {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 260px;
+  font: inherit; font-weight: 600; color: inherit; cursor: pointer;
+  background: none; border: 1px solid transparent; border-radius: 10px; padding: 6px 10px;
+}
+.who-name span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who-name::after { content: "✎"; flex: none; color: var(--muted); font-weight: 400; }
+.who-name:hover { border-color: var(--line); background: var(--sunken); }
+.name-form { display: flex; gap: 8px; align-items: center; }
+.name-form input {
+  width: 200px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--line-strong); background: var(--surface);
+}
 .who select {
   padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong);
   background: var(--surface); font-weight: 700; cursor: pointer;
@@ -371,7 +383,15 @@ main { padding: 28px; max-width: 1440px; margin: 0 auto; }
 @media (max-width: 560px) {
   main { padding: 16px; }
   .topbar { padding: 10px 16px; }
-  .who-name { display: none; }
+  .topbar-right { width: 100%; flex-wrap: nowrap; }
+  .who { flex: 1; min-width: 0; flex-wrap: nowrap; gap: 8px; }
+  .who .avatar { display: none; }
+  .who-name { flex: 1; max-width: none; padding: 6px 4px; }
+  .who select { padding: 8px 6px; max-width: 112px; }
+  .who.editing select, .who.editing #logout { display: none; }
+  .name-form .btn { flex: none; }
+  .name-form { flex: 1; min-width: 0; }
+  .name-form input { width: auto; flex: 1; min-width: 0; }
   .card { padding: 24px 20px; }
   .narrow { margin: 24px auto; }
   .roles { grid-template-columns: minmax(0, 1fr); }
