@@ -132,6 +132,15 @@ button, input, select { font: inherit; color: inherit; }
 .btn.icon:hover { background: var(--sunken); }
 .btn.icon svg { width: 22px; height: 22px; display: block; }
 .btn.block { width: 100%; padding: 14px; font-size: 1.05em; }
+/* Espera: o botão continua legível e ganha um indicador girando. */
+.btn.busy, .btn.busy:disabled { opacity: 0.85; cursor: progress; }
+.btn.busy::before, .spinner {
+  content: ""; flex: none; display: inline-block; width: 1em; height: 1em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.loading { display: inline-flex; align-items: center; gap: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .btn.huge { font-size: 1.35em; padding: 14px 36px; min-width: 200px; border-radius: 14px; }
 .btn.google {
   background: var(--surface); border-color: var(--line-strong); color: var(--text);
@@ -325,6 +334,7 @@ main { padding: 28px; max-width: 1440px; margin: 0 auto; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .btn.busy::before, .spinner { animation: spin 2s linear infinite !important; }
 }
 
 @media (max-width: 960px) {

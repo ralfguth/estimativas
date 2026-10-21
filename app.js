@@ -7,10 +7,10 @@ import {
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=6';
+import { firebaseConfig } from './firebase-config.js?v=7';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=6';
+} from './src/room.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 const screens = ['setup', 'loading', 'login', 'confirm', 'profile', 'board'];
@@ -22,6 +22,19 @@ function show(name) {
 function showError(msg) {
   $('error').textContent = msg;
   $('error').hidden = !msg;
+}
+
+// Botão em espera: gira um indicador e troca o texto enquanto o servidor responde.
+function busy(button, on, label) {
+  button.disabled = on;
+  button.classList.toggle('busy', on);
+  button.setAttribute('aria-busy', String(on));
+  if (on) {
+    button.dataset.label = button.textContent;
+    button.textContent = label;
+  } else if (button.dataset.label) {
+    button.textContent = button.dataset.label;
+  }
 }
 
 const store = {
@@ -108,7 +121,7 @@ $('login-link-form').addEventListener('submit', async (e) => {
   showError('');
   const email = $('login-email').value.trim().toLowerCase();
   const button = e.submitter;
-  button.disabled = true;
+  busy(button, true, 'Enviando…');
   try {
     await sendSignInLinkToEmail(auth, email, linkSettings());
     store.set('emailForSignIn', email);
@@ -118,7 +131,7 @@ $('login-link-form').addEventListener('submit', async (e) => {
   } catch (err) {
     showError(`Não foi possível enviar o link (${err.code ?? err.message}).`);
   } finally {
-    button.disabled = false;
+    busy(button, false);
   }
 });
 
@@ -155,9 +168,15 @@ async function finishLink(email) {
   }
 }
 
-$('confirm-form').addEventListener('submit', (e) => {
+$('confirm-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  finishLink($('confirm-email').value.trim().toLowerCase());
+  const button = e.submitter;
+  busy(button, true, 'Entrando…');
+  try {
+    await finishLink($('confirm-email').value.trim().toLowerCase());
+  } finally {
+    busy(button, false);
+  }
 });
 
 if (incomingLink) {
@@ -185,6 +204,8 @@ $('profile-form').addEventListener('submit', async (e) => {
   const name = $('profile-name').value.trim().slice(0, 40);
   const role = document.querySelector('input[name="role"]:checked')?.value;
   if (!name || !role) return;
+  const button = e.submitter;
+  busy(button, true, 'Entrando…');
   try {
     await joinRoom(name, role);
     store.set('name', name);
@@ -193,6 +214,8 @@ $('profile-form').addEventListener('submit', async (e) => {
     render();
   } catch (err) {
     showError(`Não foi possível entrar na sala (${err.code ?? err.message}).`);
+  } finally {
+    busy(button, false);
   }
 });
 
@@ -203,8 +226,7 @@ async function joinRoom(name, role) {
   const expired = !current || staleUids({ x: current }, serverNow()).length > 0;
   // Quem volta depois de expirar não traz voto antigo de volta.
   if (expired || !VOTING_ROLES.includes(role)) {
-    await remove(ref(db, `votes/${me.uid}`));
-    await remove(ref(db, `voted/${me.uid}`));
+    await update(ref(db), { [`votes/${me.uid}`]: null, [`voted/${me.uid}`]: null });
   }
   const changes = { name, email: me.email, role, joinedAt: serverTimestamp() };
   if (expired) await set(ref(db, `participants/${me.uid}`), changes);
