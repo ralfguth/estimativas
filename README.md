@@ -24,8 +24,9 @@ O Estimativas resolve as duas coisas:
 
 ## Como funciona
 
-1. A pessoa entra com a conta Google. Só passam os domínios e e-mails que estão
-   na lista de acesso.
+1. A pessoa digita o e-mail e recebe um link de acesso de uso único. Sem senha
+   e sem depender de conta Google, o que evita bloqueios de redes corporativas.
+   Só passam os domínios e e-mails que estão na lista de acesso.
 2. Escolhe o papel: **DEV**, **QA** ou **Espectador** (acompanha sem votar).
 3. Vota numa das cartas: 0, 0,5, 1, 1,5, 2, 3, 4, 5 ou 1000 (impossível de
    estimar).
@@ -49,7 +50,7 @@ O projeto não tem servidor próprio, e roda inteiro em planos gratuitos.
 
 ```
 Navegador (HTML, CSS e JavaScript puros)
-   │  login Google           │  leitura e escrita em tempo real
+   │  login por link         │  leitura e escrita em tempo real
    ▼                         ▼
 Firebase Authentication   Firebase Realtime Database
                              └─ regras de acesso (o "back-end")
@@ -90,6 +91,7 @@ silencioso: o cálculo da sala, o sigilo do voto e o filtro de acesso.
 ```sh
 npm test            # lógica da sala e montagem das regras
 npm run test:rules  # regras de acesso, no emulador do Firebase (precisa de Java)
+npm run test:e2e    # ponta a ponta no navegador, contra os emuladores
 ```
 
 - **Lógica da sala:** média por painel, 1000 fora da média, expiração de 12
@@ -98,8 +100,9 @@ npm run test:rules  # regras de acesso, no emulador do Firebase (precisa de Java
   imitações como `falsoexemplo.com.br` ou `exemplo.com.br.outro.com` não.
 - **Regras de acesso:** rodam no emulador oficial do Firebase com usuários
   simulados (de dentro e de fora da lista, com e sem e-mail confirmado).
-- Também houve testes de ponta a ponta no navegador, com quatro pessoas votando
-  ao mesmo tempo contra os emuladores.
+- **Ponta a ponta:** o navegador roda contra os emuladores, cobrindo o login
+  por link (inclusive link aberto em outro navegador, link já usado e e-mail
+  fora da lista) e uma votação completa com quatro pessoas ao mesmo tempo.
 
 ## Design
 
@@ -133,7 +136,8 @@ Abra `http://localhost:8080/?emulador` e, no console do navegador, entre com
 ## Publicar a sua própria sala
 
 1. Crie um projeto no [Firebase](https://console.firebase.google.com) (plano
-   gratuito). Em **Authentication**, ative o login com Google e adicione o
+   gratuito). Em **Authentication**, ative **E-mail/senha** com a opção
+   **Link do e-mail (login sem senha)** e adicione o
    endereço do seu site aos domínios autorizados.
 2. Crie o **Realtime Database** e registre um app web. Copie a configuração para
    `firebase-config.js`.

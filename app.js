@@ -1,18 +1,19 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
-  getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut,
-  connectAuthEmulator, signInWithCredential,
+  getAuth, onAuthStateChanged, signOut, connectAuthEmulator,
+  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+  // GoogleAuthProvider, signInWithPopup, signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=5';
+import { firebaseConfig } from './firebase-config.js?v=6';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=5';
+} from './src/room.js?v=6';
 
 const $ = (id) => document.getElementById(id);
-const screens = ['setup', 'loading', 'login', 'profile', 'board'];
+const screens = ['setup', 'loading', 'login', 'confirm', 'profile', 'board'];
 
 function show(name) {
   for (const s of screens) $(`screen-${s}`).hidden = s !== name;
@@ -57,10 +58,13 @@ const db = getDatabase(app);
 if (useEmulator) {
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectDatabaseEmulator(db, 'localhost', 9000);
-  // Entra com uma conta Google falsa, aceita só pelo emulador.
-  window.emulatorLogin = (email) => signInWithCredential(auth, GoogleAuthProvider.credential(
-    JSON.stringify({ sub: email, email, email_verified: true }),
-  ));
+  // Entra direto com o link que o emulador "enviaria" por e-mail.
+  window.emulatorLogin = async (email) => {
+    await sendSignInLinkToEmail(auth, email, linkSettings());
+    const res = await fetch('http://localhost:9099/emulator/v1/projects/demo-estimativas/oobCodes');
+    const code = (await res.json()).oobCodes.filter((c) => c.email === email).at(-1);
+    await signInWithEmailLink(auth, email, code.oobLink);
+  };
 }
 
 // Estado vindo do banco.
@@ -72,23 +76,95 @@ let unsubAllVotes = null;
 
 const serverNow = () => Date.now() + serverOffset;
 
-// ---------- Login com Google ----------
+// ---------- Login com Google (desligado) ----------
+// A rede corporativa bloqueia o login com Google. Para religar, descomente este
+// trecho, o import de GoogleAuthProvider, signInWithPopup e signInWithRedirect,
+// e o botão em index.html.
+//
+// const provider = new GoogleAuthProvider();
+// // Sempre mostra a escolha de conta, para quem tem mais de uma conta no mesmo navegador.
+// provider.setCustomParameters({ prompt: 'select_account' });
+//
+// $('login-google').addEventListener('click', async () => {
+//   showError('');
+//   try {
+//     await signInWithPopup(auth, provider);
+//   } catch (err) {
+//     if (err.code === 'auth/popup-blocked') await signInWithRedirect(auth, provider);
+//     else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+//       showError(`Não foi possível entrar (${err.code ?? err.message}).`);
+//     }
+//   }
+// });
 
-const provider = new GoogleAuthProvider();
-// Sempre mostra a escolha de conta, para quem tem mais de uma conta no mesmo navegador.
-provider.setCustomParameters({ prompt: 'select_account' });
+// ---------- Login por link no e-mail ----------
 
-$('login-google').addEventListener('click', async () => {
+function linkSettings() {
+  return { url: location.origin + location.pathname + (useEmulator ? '?emulador' : ''), handleCodeInApp: true };
+}
+
+$('login-link-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
   showError('');
+  const email = $('login-email').value.trim().toLowerCase();
+  const button = e.submitter;
+  button.disabled = true;
   try {
-    await signInWithPopup(auth, provider);
+    await sendSignInLinkToEmail(auth, email, linkSettings());
+    store.set('emailForSignIn', email);
+    $('sent-to').textContent = email;
+    $('login-link-form').hidden = true;
+    $('link-sent').hidden = false;
   } catch (err) {
-    if (err.code === 'auth/popup-blocked') await signInWithRedirect(auth, provider);
-    else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-      showError(`Não foi possível entrar (${err.code ?? err.message}).`);
-    }
+    showError(`Não foi possível enviar o link (${err.code ?? err.message}).`);
+  } finally {
+    button.disabled = false;
   }
 });
+
+$('login-again').addEventListener('click', () => {
+  $('login-link-form').hidden = false;
+  $('link-sent').hidden = true;
+});
+
+// O link chega com um código de uso único na barra de endereço. Ele é guardado
+// e a barra é limpa antes de tudo, para o código não ficar no histórico.
+const incomingLink = isSignInWithEmailLink(auth, location.href) ? location.href : null;
+if (incomingLink) history.replaceState(null, '', location.pathname + (useEmulator ? '?emulador' : ''));
+let linkPending = Boolean(incomingLink);
+
+async function finishLink(email) {
+  showError('');
+  try {
+    await signInWithEmailLink(auth, email, incomingLink);
+    store.del('emailForSignIn');
+    linkPending = false;
+  } catch (err) {
+    if (err.code === 'auth/invalid-email') {
+      showError('Este e-mail não confere com o do link.');
+      show('confirm');
+      return;
+    }
+    linkPending = false;
+    store.del('emailForSignIn');
+    const expired = err.code === 'auth/invalid-action-code' || err.code === 'auth/expired-action-code';
+    showError(expired
+      ? 'Este link expirou ou já foi usado. Peça um novo.'
+      : `Não foi possível entrar (${err.code ?? err.message}).`);
+    show('login');
+  }
+}
+
+$('confirm-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  finishLink($('confirm-email').value.trim().toLowerCase());
+});
+
+if (incomingLink) {
+  const saved = store.get('emailForSignIn');
+  if (saved) finishLink(saved);
+  else show('confirm');
+}
 
 $('logout').addEventListener('click', async () => {
   await signOut(auth);
@@ -355,7 +431,8 @@ onAuthStateChanged(auth, async (user) => {
   profileDone = false;
   $('who').hidden = true;
   if (!user) {
-    show('login');
+    // Enquanto um link de acesso está sendo usado, a tela fica com ele.
+    if (!linkPending) show('login');
     return;
   }
   const denyAccess = async () => {

@@ -178,6 +178,8 @@ main { padding: 28px; max-width: 1440px; margin: 0 auto; }
 .card h2 { margin: 0 0 8px; font-size: 1.6em; }
 .hero-logo { width: 72px; height: 72px; margin-bottom: 12px; }
 #screen-login .btn.google { margin-top: 16px; }
+.login-form { margin-top: 20px; text-align: left; }
+#link-sent { text-align: center; }
 
 .error {
   max-width: 720px; margin: 0 auto 20px;
