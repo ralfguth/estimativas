@@ -1,19 +1,20 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, signOut, connectAuthEmulator,
-  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
+  // sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
   // GoogleAuthProvider, signInWithPopup, signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {
   getDatabase, ref, onValue, update, remove, set, get, serverTimestamp, connectDatabaseEmulator,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=8';
+import { firebaseConfig } from './firebase-config.js?v=9';
 import {
   buildView, staleUids, VOTE_OPTIONS, IMPOSSIBLE, VOTING_ROLES,
-} from './src/room.js?v=8';
+} from './src/room.js?v=9';
 
 const $ = (id) => document.getElementById(id);
-const screens = ['setup', 'loading', 'login', 'confirm', 'profile', 'board'];
+const screens = ['setup', 'loading', 'login', 'profile', 'board'];
 
 function show(name) {
   for (const s of screens) $(`screen-${s}`).hidden = s !== name;
@@ -22,6 +23,12 @@ function show(name) {
 function showError(msg) {
   $('error').textContent = msg;
   $('error').hidden = !msg;
+  if (msg) showNotice('');
+}
+
+function showNotice(msg) {
+  $('notice').textContent = msg;
+  $('notice').hidden = !msg;
 }
 
 // Botão em espera: gira um indicador e troca o texto enquanto o servidor responde.
@@ -101,12 +108,15 @@ const db = getDatabase(app);
 if (useEmulator) {
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectDatabaseEmulator(db, 'localhost', 9000);
-  // Entra direto com o link que o emulador "enviaria" por e-mail.
+  // Cria a conta (ou entra nela) com uma senha fixa, só no emulador.
   window.emulatorLogin = async (email) => {
-    await sendSignInLinkToEmail(auth, email, linkSettings());
-    const res = await fetch('http://localhost:9099/emulator/v1/projects/demo-estimativas/oobCodes');
-    const code = (await res.json()).oobCodes.filter((c) => c.email === email).at(-1);
-    await signInWithEmailLink(auth, email, code.oobLink);
+    const password = 'senha-do-emulador';
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      if (err.code !== 'auth/email-already-in-use') throw err;
+      await signInWithEmailAndPassword(auth, email, password);
+    }
   };
 }
 
@@ -140,83 +150,167 @@ const serverNow = () => Date.now() + serverOffset;
 //   }
 // });
 
-// ---------- Login por link no e-mail ----------
-
-function linkSettings() {
-  return { url: location.origin + location.pathname + (useEmulator ? '?emulador' : ''), handleCodeInApp: true };
-}
-
-$('login-link-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  showError('');
-  const email = $('login-email').value.trim().toLowerCase();
-  const button = e.submitter;
-  busy(button, true, 'Enviando…');
-  try {
-    await sendSignInLinkToEmail(auth, email, linkSettings());
-    store.set('emailForSignIn', email);
-    $('sent-to').textContent = email;
-    $('login-link-form').hidden = true;
-    $('link-sent').hidden = false;
-  } catch (err) {
-    showError(`Não foi possível enviar o link (${err.code ?? err.message}).`);
-  } finally {
-    busy(button, false);
-  }
-});
-
-$('login-again').addEventListener('click', () => {
-  $('login-link-form').hidden = false;
-  $('link-sent').hidden = true;
-});
-
-// O link chega com um código de uso único na barra de endereço. Ele é guardado
-// e a barra é limpa antes de tudo, para o código não ficar no histórico.
-const incomingLink = isSignInWithEmailLink(auth, location.href) ? location.href : null;
-if (incomingLink) history.replaceState(null, '', location.pathname + (useEmulator ? '?emulador' : ''));
-let linkPending = Boolean(incomingLink);
-
-async function finishLink(email) {
-  showError('');
-  try {
-    await signInWithEmailLink(auth, email, incomingLink);
-    store.del('emailForSignIn');
-    linkPending = false;
-  } catch (err) {
-    if (err.code === 'auth/invalid-email') {
-      showError('Este e-mail não confere com o do link.');
-      show('confirm');
-      return;
-    }
-    linkPending = false;
-    store.del('emailForSignIn');
-    const expired = err.code === 'auth/invalid-action-code' || err.code === 'auth/expired-action-code';
-    showError(expired
-      ? 'Este link expirou ou já foi usado. Peça um novo.'
-      : `Não foi possível entrar (${err.code ?? err.message}).`);
-    show('login');
-  }
-}
-
-$('confirm-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const button = e.submitter;
-  busy(button, true, 'Entrando…');
-  try {
-    await finishLink($('confirm-email').value.trim().toLowerCase());
-  } finally {
-    busy(button, false);
-  }
-});
-
-if (incomingLink) {
-  const saved = store.get('emailForSignIn');
-  if (saved) finishLink(saved);
-  else show('confirm');
-}
+// ---------- Login por link no e-mail (desligado) ----------
+// O plano gratuito do Firebase só envia 5 e-mails de link por dia. Para religar,
+// descomente este trecho, o import de sendSignInLinkToEmail, isSignInWithEmailLink
+// e signInWithEmailLink, e os formulários comentados em index.html.
+//
+// function linkSettings() {
+//   return { url: location.origin + location.pathname + (useEmulator ? '?emulador' : ''), handleCodeInApp: true };
+// }
+//
+// $('login-link-form').addEventListener('submit', async (e) => {
+//   e.preventDefault();
+//   showError('');
+//   const email = $('login-email').value.trim().toLowerCase();
+//   const button = e.submitter;
+//   busy(button, true, 'Enviando…');
+//   try {
+//     await sendSignInLinkToEmail(auth, email, linkSettings());
+//     store.set('emailForSignIn', email);
+//     $('sent-to').textContent = email;
+//     $('login-link-form').hidden = true;
+//     $('link-sent').hidden = false;
+//   } catch (err) {
+//     showError(`Não foi possível enviar o link (${err.code ?? err.message}).`);
+//   } finally {
+//     busy(button, false);
+//   }
+// });
+//
+// $('login-again').addEventListener('click', () => {
+//   $('login-link-form').hidden = false;
+//   $('link-sent').hidden = true;
+// });
+//
+// // O link chega com um código de uso único na barra de endereço. Ele é guardado
+// // e a barra é limpa antes de tudo, para o código não ficar no histórico.
+// const incomingLink = isSignInWithEmailLink(auth, location.href) ? location.href : null;
+// if (incomingLink) history.replaceState(null, '', location.pathname + (useEmulator ? '?emulador' : ''));
+// let linkPending = Boolean(incomingLink);
+//
+// async function finishLink(email) {
+//   showError('');
+//   try {
+//     await signInWithEmailLink(auth, email, incomingLink);
+//     store.del('emailForSignIn');
+//     linkPending = false;
+//   } catch (err) {
+//     if (err.code === 'auth/invalid-email') {
+//       showError('Este e-mail não confere com o do link.');
+//       show('confirm');
+//       return;
+//     }
+//     linkPending = false;
+//     store.del('emailForSignIn');
+//     const expired = err.code === 'auth/invalid-action-code' || err.code === 'auth/expired-action-code';
+//     showError(expired
+//       ? 'Este link expirou ou já foi usado. Peça um novo.'
+//       : `Não foi possível entrar (${err.code ?? err.message}).`);
+//     show('login');
+//   }
+// }
+//
+// $('confirm-form').addEventListener('submit', async (e) => {
+//   e.preventDefault();
+//   const button = e.submitter;
+//   busy(button, true, 'Entrando…');
+//   try {
+//     await finishLink($('confirm-email').value.trim().toLowerCase());
+//   } finally {
+//     busy(button, false);
+//   }
+// });
+//
+// if (incomingLink) {
+//   const saved = store.get('emailForSignIn');
+//   if (saved) finishLink(saved);
+//   else show('confirm');
+// }
+//
 
 $('logout').addEventListener('click', async () => {
   await signOut(auth);
+});
+
+// ---------- Login com e-mail e senha ----------
+// No primeiro acesso a pessoa cria a conta. O e-mail não é confirmado (decisão do
+// usuário): as regras do banco só conferem se o domínio está na lista.
+
+function actionSettings() {
+  return { url: location.origin + location.pathname + (useEmulator ? '?emulador' : '') };
+}
+
+function authMessage(err, fallback) {
+  switch (err.code) {
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'E-mail ou senha incorretos.';
+    case 'auth/email-already-in-use':
+      return 'Esse e-mail já tem conta. Use "Entrar" ou "Esqueci minha senha".';
+    case 'auth/weak-password':
+      return 'A senha precisa ter pelo menos 6 caracteres.';
+    case 'auth/invalid-email':
+      return 'Esse e-mail não é válido.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
+    case 'auth/quota-exceeded':
+      return 'O limite diário de e-mails foi atingido. Tente de novo amanhã.';
+    default:
+      return `${fallback} (${err.code ?? err.message}).`;
+  }
+}
+
+const credentials = () => ({
+  email: $('login-email').value.trim().toLowerCase(),
+  password: $('login-password').value,
+});
+
+$('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  showError('');
+  const button = e.submitter;
+  busy(button, true, 'Entrando…');
+  try {
+    const { email, password } = credentials();
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    showError(authMessage(err, 'Não foi possível entrar'));
+  } finally {
+    busy(button, false);
+  }
+});
+
+$('signup').addEventListener('click', async (e) => {
+  if (!$('login-form').reportValidity()) return;
+  showError('');
+  const button = e.currentTarget;
+  busy(button, true, 'Criando conta…');
+  try {
+    const { email, password } = credentials();
+    await createUserWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    showError(authMessage(err, 'Não foi possível criar a conta'));
+  } finally {
+    busy(button, false);
+  }
+});
+
+$('forgot').addEventListener('click', async (e) => {
+  if (!$('login-email').reportValidity()) return;
+  showError('');
+  const button = e.currentTarget;
+  busy(button, true, 'Enviando…');
+  try {
+    await sendPasswordResetEmail(auth, credentials().email, actionSettings());
+    showNotice('Se esse e-mail tiver conta, enviamos um link para criar uma nova senha.');
+  } catch (err) {
+    showError(authMessage(err, 'Não foi possível enviar o e-mail'));
+  } finally {
+    busy(button, false);
+  }
 });
 
 // ---------- Perfil (nome e papel) ----------
@@ -483,22 +577,16 @@ function render() {
 
 // ---------- Início ----------
 
-onAuthStateChanged(auth, async (user) => {
+async function denyAccess() {
+  await signOut(auth);
+  showError('Esta conta não tem acesso.');
+}
+
+// Abre a sala para quem já confirmou o e-mail.
+async function startSession(user) {
   unsubscribeAll();
-  me = null;
-  profileDone = false;
-  $('who').hidden = true;
-  if (!user) {
-    // Enquanto um link de acesso está sendo usado, a tela fica com ele.
-    if (!linkPending) show('login');
-    return;
-  }
-  const denyAccess = async () => {
-    await signOut(auth);
-    showError('Esta conta não tem acesso.');
-  };
-  if (!user.emailVerified) return denyAccess();
   me = user;
+  profileDone = false;
   show('loading');
   try {
     const snap = await get(ref(db, `participants/${user.uid}`));
@@ -518,4 +606,16 @@ onAuthStateChanged(auth, async (user) => {
   }
   subscribe();
   render();
+}
+
+onAuthStateChanged(auth, async (user) => {
+  unsubscribeAll();
+  me = null;
+  profileDone = false;
+  $('who').hidden = true;
+  if (!user) {
+    show('login');
+    return;
+  }
+  await startSession(user);
 });

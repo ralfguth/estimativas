@@ -70,8 +70,16 @@ test('e-mail exato da lista entra, outro do mesmo provedor não', async () => {
   await assertFails(get(ref(db('outro', 'outro@gmail.com'), 'participants')));
 });
 
-test('e-mail da lista não confirmado não entra', async () => {
-  await assertFails(get(ref(db('ana', 'ana@exemplo.com.br', false), 'participants')));
+// Decisão do usuário (2026-10-21): login por e-mail e senha sem confirmação do
+// e-mail. Basta o domínio estar na lista. Estado Red: o modelo ainda exige
+// email_verified.
+test('e-mail da lista entra mesmo sem confirmação', async () => {
+  await assertSucceeds(get(ref(db('ana', 'ana@exemplo.com.br', false), 'participants')));
+});
+
+test('e-mail de fora continua barrado, confirmado ou não', async () => {
+  await assertFails(get(ref(db('x', 'x@gmail.com', false), 'participants')));
+  await assertFails(get(ref(db('y', 'y@gmail.com', true), 'participants')));
 });
 
 test('membros da lista leem a sala e quem votou', async () => {

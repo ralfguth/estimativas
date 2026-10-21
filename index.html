@@ -6,7 +6,7 @@
   <title>Estimativas</title>
   <meta name="theme-color" content="#115f59">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='2' width='22' height='28' rx='4' fill='%23115f59'/><path d='M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z' fill='white'/></svg>">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <script>
     try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
@@ -36,6 +36,7 @@
 
   <main>
     <p id="error" class="error" role="alert" hidden></p>
+    <p id="notice" class="notice" role="status" hidden></p>
 
     <section id="screen-setup" class="card narrow" hidden>
       <h2>Falta configurar o Firebase</h2>
@@ -48,7 +49,7 @@
       <svg class="hero-logo" width="72" height="72" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#115f59"/><path fill="#fff" d="M16 9.5c-3 2.6-6 4.6-6 7.4a3 3 0 0 0 5 2.2l-.9 3.4h3.8l-.9-3.4a3 3 0 0 0 5-2.2c0-2.8-3-4.8-6-7.4z"/></svg>
       <h2>Estimativas da equipe</h2>
       <p class="muted">DEV estima o desenvolvimento, QA estima os testes.</p>
-      <p class="muted">Digite seu e-mail para receber um link de acesso.</p>
+      <p class="muted">Entre com seu e-mail e senha. No primeiro acesso, crie a sua conta.</p>
       <!-- Login com Google desligado: a rede corporativa bloqueia. Para religar,
            descomente este botão e o trecho "Login com Google" em app.js.
       <button id="login-google" class="btn google">
@@ -56,6 +57,9 @@
         Entrar com Google
       </button>
       -->
+      <!-- Login por link no e-mail desligado: o plano gratuito do Firebase só envia
+           5 e-mails de link por dia. Para religar, descomente este formulário, a tela
+           "screen-confirm" abaixo e o trecho "Login por link" em app.js.
       <form id="login-link-form" class="login-form">
         <label class="field">E-mail
           <input id="login-email" type="email" required autocomplete="email" placeholder="nome@empresa.com.br">
@@ -67,8 +71,21 @@
         <p class="muted">Abra o e-mail neste navegador e clique no link. Se não chegar em alguns minutos, olhe a caixa de spam.</p>
         <button id="login-again" class="btn ghost">Usar outro e-mail</button>
       </div>
+      -->
+      <form id="login-form" class="login-form">
+        <label class="field">E-mail
+          <input id="login-email" type="email" required autocomplete="email" placeholder="nome@empresa.com.br">
+        </label>
+        <label class="field">Senha
+          <input id="login-password" type="password" required minlength="6" autocomplete="current-password">
+        </label>
+        <button type="submit" class="btn primary block">Entrar</button>
+        <button type="button" id="signup" class="btn outline block">Criar conta</button>
+        <button type="button" id="forgot" class="btn link">Esqueci minha senha</button>
+      </form>
     </section>
 
+    <!-- Tela do login por link (desligado), usada quando o link abria em outro navegador.
     <section id="screen-confirm" class="card narrow" hidden>
       <h2>Confirme seu e-mail</h2>
       <p class="muted">O link foi aberto num navegador diferente do que pediu. Digite o e-mail para onde ele foi enviado.</p>
@@ -79,6 +96,7 @@
         <button type="submit" class="btn primary block">Entrar</button>
       </form>
     </section>
+    -->
 
     <section id="screen-profile" class="card narrow" hidden>
       <h2>Quem é você nesta votação?</h2>
@@ -145,6 +163,6 @@
     <div class="overlay-box"><span class="spinner" aria-hidden="true"></span><span id="overlay-text">Salvando…</span></div>
   </div>
 
-  <script type="module" src="app.js?v=8"></script>
+  <script type="module" src="app.js?v=9"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Ponta a ponta no navegador, contra os emuladores de banco e de login.
 // Rodar com: npm run test:e2e
-// Estado Red do link por e-mail: a tela de login ainda não tem campo de e-mail.
+// Login por e-mail e senha, sem confirmação do e-mail.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -57,26 +57,30 @@ async function newPage() {
   return page;
 }
 
-// Link que o emulador "enviou" por e-mail, no formato em que ele chega ao app.
-async function linkFor(email) {
-  const res = await fetch(`http://localhost:9099/emulator/v1/projects/${PROJECT}/oobCodes`);
+const PASSWORD = 'senha-de-teste-1';
+const EMULATOR_AUTH = 'http://localhost:9099';
+
+async function oobCode(email, type) {
+  const res = await fetch(`${EMULATOR_AUTH}/emulator/v1/projects/${PROJECT}/oobCodes`);
   const { oobCodes } = await res.json();
-  const code = oobCodes.filter((c) => c.email === email && c.requestType === 'EMAIL_SIGNIN').at(-1);
-  assert.ok(code, `link enviado para ${email}`);
-  const params = new URL(code.oobLink).searchParams;
-  return `${APP}&mode=signIn&oobCode=${params.get('oobCode')}&apiKey=${params.get('apiKey')}&lang=pt`;
+  const code = oobCodes.filter((c) => c.email === email && c.requestType === type).at(-1);
+  assert.ok(code, `e-mail ${type} enviado para ${email}`);
+  return code;
 }
 
-async function requestLink(page, email) {
+async function fillLogin(page, email, password = PASSWORD) {
   await page.fill('#login-email', email);
-  await page.click('#login-link-form button[type=submit]');
-  await page.waitForSelector('#link-sent:not([hidden])');
+  await page.fill('#login-password', password);
+}
+
+async function signUp(page, email) {
+  await fillLogin(page, email);
+  await page.click('#signup');
 }
 
 async function enter(email, name, role) {
   const page = await newPage();
-  await requestLink(page, email);
-  await page.goto(await linkFor(email));
+  await signUp(page, email);
   await page.waitForSelector('#screen-profile:not([hidden])');
   await page.fill('#profile-name', name);
   await page.check(`input[name=role][value=${role}]`);
@@ -90,64 +94,62 @@ const card = (p, label) => p.getByRole('button', {
   name: label === 'impossível' ? 'Votar 1000, impossível de estimar' : `Votar ${label}`, exact: true,
 });
 
-test('a tela de login oferece só o link por e-mail', async () => {
+test('a tela de login pede e-mail e senha, sem Google', async () => {
   const page = await newPage();
   assert.equal(await page.locator('#login-email').isVisible(), true);
+  assert.equal(await page.locator('#login-password').isVisible(), true);
   assert.equal(await page.locator('#login-google').count(), 0);
   await page.context().close();
 });
 
-test('o link por e-mail entra na sala e limpa o código da barra de endereço', async () => {
+test('criar conta entra direto, sem confirmar o e-mail', async () => {
   const page = await newPage();
-  await requestLink(page, 'link@exemplo.com.br');
-  assert.match(await text(page, '#link-sent'), /link@exemplo\.com\.br/);
-  await page.goto(await linkFor('link@exemplo.com.br'));
+  await signUp(page, 'nova@exemplo.com.br');
   await page.waitForSelector('#screen-profile:not([hidden])');
-  assert.doesNotMatch(page.url(), /oobCode/);
   await page.context().close();
 });
 
-test('link aberto em outro navegador pede o e-mail e recusa e-mail diferente', async () => {
-  const first = await newPage();
-  await requestLink(first, 'outro@exemplo.com.br');
-  const link = await linkFor('outro@exemplo.com.br');
+test('quem já tem conta entra só com e-mail e senha', async () => {
+  const first = await enter('volta@exemplo.com.br', 'Volta', 'DEV');
+  await first.click('#logout');
+  await first.waitForSelector('#screen-login:not([hidden])');
+  await fillLogin(first, 'volta@exemplo.com.br');
+  await first.click('#login-form button[type=submit]');
+  await first.waitForSelector('#screen-board:not([hidden])');
   await first.context().close();
+});
 
-  const page = await (await browser.newContext()).newPage();
-  await page.goto(link);
-  await page.waitForSelector('#screen-confirm:not([hidden])');
-  await page.fill('#confirm-email', 'errado@exemplo.com.br');
-  await page.click('#confirm-form button[type=submit]');
+test('senha errada avisa sem dizer se o e-mail existe', async () => {
+  const page = await newPage();
+  await fillLogin(page, 'volta@exemplo.com.br', 'senha-errada');
+  await page.click('#login-form button[type=submit]');
   await page.waitForSelector('#error:not([hidden])');
-  assert.match(await text(page, '#error'), /não confere/);
-
-  await page.fill('#confirm-email', 'outro@exemplo.com.br');
-  await page.click('#confirm-form button[type=submit]');
-  await page.waitForSelector('#screen-profile:not([hidden])');
+  assert.match(await text(page, '#error'), /E-mail ou senha incorretos/);
   await page.context().close();
 });
 
-test('link já usado avisa e volta para a tela de login', async () => {
+test('criar conta com e-mail que já tem conta orienta a entrar', async () => {
   const page = await newPage();
-  await requestLink(page, 'usado@exemplo.com.br');
-  const link = await linkFor('usado@exemplo.com.br');
-  await page.goto(link);
-  await page.waitForSelector('#screen-profile:not([hidden])');
+  await fillLogin(page, 'volta@exemplo.com.br');
+  await page.click('#signup');
+  await page.waitForSelector('#error:not([hidden])');
+  assert.match(await text(page, '#error'), /já tem conta/);
   await page.context().close();
-
-  const again = await newPage();
-  await again.evaluate(() => localStorage.setItem('emailForSignIn', 'usado@exemplo.com.br'));
-  await again.goto(link);
-  await again.waitForSelector('#error:not([hidden])');
-  assert.match(await text(again, '#error'), /expirou ou já foi usado/);
-  await again.waitForSelector('#screen-login:not([hidden])');
-  await again.context().close();
 });
 
-test('e-mail fora da lista entra pelo link mas é barrado pelo servidor', async () => {
+test('esqueci minha senha envia o link de troca', async () => {
   const page = await newPage();
-  await requestLink(page, 'intruso@gmail.com');
-  await page.goto(await linkFor('intruso@gmail.com'));
+  await page.fill('#login-email', 'volta@exemplo.com.br');
+  await page.click('#forgot');
+  await page.waitForSelector('#notice:not([hidden])');
+  assert.match(await text(page, '#notice'), /nova senha/);
+  await oobCode('volta@exemplo.com.br', 'PASSWORD_RESET');
+  await page.context().close();
+});
+
+test('e-mail fora da lista cria conta mas é barrado pelo servidor', async () => {
+  const page = await newPage();
+  await signUp(page, 'intruso@gmail.com');
   await page.waitForSelector('#error:not([hidden])');
   assert.match(await text(page, '#error'), /não tem acesso/);
   assert.equal(await page.locator('#screen-board').isHidden(), true);
@@ -184,7 +186,11 @@ test('votação completa: ocultar, revelar, mudar voto, reiniciar', async () => 
   await ana.waitForFunction(() => document.querySelector('#avg-QA').innerText.includes('1,5'));
 
   await bia.click('#reset');
-  await duda.waitForFunction(() => document.querySelectorAll('.chip.waiting').length === 3);
+  // Todas as pessoas que votam voltam a "aguardando", quantas forem.
+  await duda.waitForFunction(() => {
+    const rows = document.querySelectorAll('#list-DEV li:not(.empty), #list-QA li:not(.empty)');
+    return rows.length > 0 && document.querySelectorAll('.chip.waiting').length === rows.length;
+  });
   assert.match(await text(duda, '#avg-DEV'), /aparece ao revelar/);
 
   await caio.reload();

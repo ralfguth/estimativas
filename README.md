@@ -24,9 +24,10 @@ O Estimativas resolve as duas coisas:
 
 ## Como funciona
 
-1. A pessoa digita o e-mail e recebe um link de acesso de uso único. Sem senha
-   e sem depender de conta Google, o que evita bloqueios de redes corporativas.
-   Só passam os domínios e e-mails que estão na lista de acesso.
+1. A pessoa entra com e-mail e senha. No primeiro acesso, ela mesma cria a
+   conta, e "Esqueci minha senha" resolve o resto. Não depende de conta Google,
+   o que evita bloqueios de redes corporativas. Só passam os domínios e e-mails
+   que estão na lista de acesso.
 2. Escolhe o papel: **DEV**, **QA** ou **Espectador** (acompanha sem votar).
 3. Vota numa das cartas: 0, 0,5, 1, 1,5, 2, 3, 4, 5 ou 1000 (impossível de
    estimar).
@@ -50,7 +51,7 @@ O projeto não tem servidor próprio, e roda inteiro em planos gratuitos.
 
 ```
 Navegador (HTML, CSS e JavaScript puros)
-   │  login por link         │  leitura e escrita em tempo real
+   │  e-mail e senha         │  leitura e escrita em tempo real
    ▼                         ▼
 Firebase Authentication   Firebase Realtime Database
                              └─ regras de acesso (o "back-end")
@@ -60,7 +61,7 @@ Hospedagem: GitHub Pages
 - **Sem framework e sem etapa de build.** A página é HTML, CSS e módulos
   JavaScript nativos, servidos como estão. O SDK do Firebase vem por CDN.
 - **As regras do banco fazem o papel do back-end.** Elas exigem e-mail
-  confirmado da lista de acesso, deixam cada pessoa escrever só o próprio voto,
+  da lista de acesso, deixam cada pessoa escrever só o próprio voto,
   aceitam só as cartas do baralho e só liberam a leitura dos votos depois do
   Revelar.
 - **A lista de acesso não é pública.** O repositório guarda só um modelo das
@@ -80,6 +81,11 @@ O código da página é público, como em todo site, então nada sensível fica 
 - Toda decisão de acesso acontece no servidor. Mesmo pedindo os dados direto ao
   banco pelo console do navegador, quem não está na lista ou tenta ler votos
   antes do Revelar recebe "permissão negada". Os testes cobrem esses casos.
+- O e-mail não é confirmado no cadastro, por escolha: a sala é uma ferramenta
+  interna de baixo risco e o plano gratuito limita bastante os e-mails. Por isso
+  o servidor confere o domínio do e-mail, mas não prova que a pessoa é dona
+  daquele endereço. Quem tiver a conta tomada recupera pelo "Esqueci minha
+  senha", que manda o link para a caixa de entrada verdadeira.
 - Arquivos de credencial (chave de conta de serviço, `.env`) estão bloqueados no
   `.gitignore`. O projeto não precisa de nenhum deles.
 
@@ -99,10 +105,11 @@ npm run test:e2e    # ponta a ponta no navegador, contra os emuladores
 - **Montagem das regras:** só domínios e e-mails exatos da lista passam,
   imitações como `falsoexemplo.com.br` ou `exemplo.com.br.outro.com` não.
 - **Regras de acesso:** rodam no emulador oficial do Firebase com usuários
-  simulados (de dentro e de fora da lista, com e sem e-mail confirmado).
+  simulados, de dentro e de fora da lista.
 - **Ponta a ponta:** o navegador roda contra os emuladores, cobrindo o login
-  por link (inclusive link aberto em outro navegador, link já usado e e-mail
-  fora da lista) e uma votação completa com quatro pessoas ao mesmo tempo.
+  (criar conta, entrar, senha errada, conta repetida, esqueci minha senha e
+  e-mail fora da lista), a troca de papel e uma votação completa com quatro
+  pessoas ao mesmo tempo.
 
 ## Design
 
@@ -136,8 +143,7 @@ Abra `http://localhost:8080/?emulador` e, no console do navegador, entre com
 ## Publicar a sua própria sala
 
 1. Crie um projeto no [Firebase](https://console.firebase.google.com) (plano
-   gratuito). Em **Authentication**, ative **E-mail/senha** com a opção
-   **Link do e-mail (login sem senha)** e adicione o
+   gratuito). Em **Authentication**, ative **E-mail/senha** e adicione o
    endereço do seu site aos domínios autorizados.
 2. Crie o **Realtime Database** e registre um app web. Copie a configuração para
    `firebase-config.js`.
