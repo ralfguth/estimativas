@@ -35,7 +35,8 @@ O Estimativas resolve as duas coisas:
 5. **Revelar** vira as cartas e mostra a média de DEV e a de QA. O 1000 fica
    fora da média e aparece contado à parte.
 6. O voto pode mudar a qualquer momento, inclusive depois de revelado, porque é
-   quando o time conversa sobre os números. A média acompanha na hora.
+   quando o time conversa sobre os números. A média acompanha assim que o
+   servidor confirma.
 7. **Reiniciar** zera os votos e esconde tudo para a próxima tarefa.
 
 Quem passa mais de 12 horas sem votar sai da sala sozinho. Não há histórico de
@@ -68,6 +69,12 @@ Hospedagem: GitHub Pages
   regras. A lista real fica num arquivo local fora do git, e um script junta as
   duas coisas na hora de publicar. Assim o código pode ser aberto sem revelar
   quem pode entrar.
+- **A tela só mostra o que o servidor confirmou.** O Firebase costuma aplicar
+  uma alteração na tela antes de o servidor aceitar, para parecer rápido. Aqui,
+  cada ação (votar, trocar de papel, revelar, reiniciar) bloqueia a tela com um
+  aviso de espera e só atualiza depois da confirmação. Sem resposta, a tela
+  continua bloqueada e oferece recarregar, sem nunca mostrar algo que o servidor
+  não aceitou.
 - **A lógica da sala é um módulo puro** (`src/room.js`): recebe os dados do banco
   e devolve o que a tela mostra (painéis, médias, quem expirou). Sem Firebase
   dentro dele, o que deixa o módulo fácil de testar.
@@ -100,6 +107,9 @@ npm run test:rules  # regras de acesso, no emulador do Firebase (precisa de Java
 npm run test:e2e    # ponta a ponta no navegador, contra os emuladores
 ```
 
+Os testes de ponta a ponta usam o Firefox do Playwright. Na primeira vez, rode
+`npx playwright install firefox`.
+
 - **Lógica da sala:** média por painel, 1000 fora da média, expiração de 12
   horas, voto alheio nunca exposto antes do Revelar.
 - **Montagem das regras:** só domínios e e-mails exatos da lista passam,
@@ -110,6 +120,9 @@ npm run test:e2e    # ponta a ponta no navegador, contra os emuladores
   (criar conta, entrar, senha errada, conta repetida, esqueci minha senha e
   e-mail fora da lista), a troca de papel e uma votação completa com quatro
   pessoas ao mesmo tempo.
+- **Servidor lento:** com a conexão da página desligada, o teste confere que
+  nem o voto nem a troca de papel aparecem na tela antes de o servidor
+  confirmar, e que tudo atualiza quando a conexão volta.
 
 ## Design
 
